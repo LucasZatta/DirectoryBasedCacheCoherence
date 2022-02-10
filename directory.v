@@ -10,7 +10,7 @@ addressBypassC0, dataBypassC0, addressBypassC1, dataBypassC1;
 wire fetchPresentC0, fetchPresentC1, operationBypassC0, operationBypassC1,
 dataWriteBackC0, dataWriteBackC1;
 
-wire [2:0] interconnectionMessageC0, interconnectionMessageC1;
+wire [2:0] interconnectionMessageC0, interconnectionMessageC1; //via de comunicacao cachel2->l1
 
 //cacheL2
 wire [7:0] addressBypassL2, dataBypassL2, memoryDataOut;
