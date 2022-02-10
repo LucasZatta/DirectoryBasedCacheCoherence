@@ -110,7 +110,65 @@ end
 endmodule
 
 
-module directoryStateMachineBus(input readMiss, invalidate, writeMiss, input[1:0] busInitialState, output[1:0] busNewState)
+module directoryStateMachineBus(input readMiss, invalidate, writeMiss, input[1:0] busInitialState, output[1:0] busNewState, output busWriteBack, output busFetch)
+
+parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
+
+always @(*) begin
+if ({readMiss, invalidate, writeMiss}==3'b000) begin
+    busNewState <= busInitialState;
+    busWriteBack<= 1'b0;
+    busFetch <= 1'b0; 
+end
+case busInitialState:
+    SHARED: begin
+        case {readMiss, invalidate, writeMiss}
+            3'b001: begin //writemiss
+                busNewState <= INVALID;
+                busWriteBack<= 1'b0;
+                busFetch <= 1'b0;
+            end
+            3'b010: begin //invalidate
+                busNewState <= INVALID;
+                busWriteBack<= 1'b0;
+                busFetch <= 1'b0;
+            end
+            3'b100: begin //readMiss
+                busNewState <= SHARED;
+                busWriteBack<= 1'b0;
+                busFetch <= 1'b0;
+            end
+        endcase
+    end
+
+    INVALID: begin
+        busNewState <= INVALID;
+        busWriteBack<= 1'b0;
+        busFetch <= 1'b0;
+    end
+
+    MODIFIED: begin
+        case {readMiss, invalidate, writeMiss}
+            3'b001: begin //writeMiss
+                busNewState <= INVALID;
+                busWriteBack<= 1'b1;
+                busFetch <= 1'b1;
+            end
+            3'b010: begin //invalidate
+                busNewState <= MODIFIED;
+                busWriteBack<= 1'b0;
+                busFetch <= 1'b0;
+            end
+            3'b100: begin //readMiss
+                busNewState <= SHARED;
+                busWriteBack<= 1'b1;
+                busFetch <= 1'b1;
+            end
+        endcase
+    end
+endcase
+
+end
 
 endmodule
 
