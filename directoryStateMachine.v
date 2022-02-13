@@ -110,17 +110,17 @@ end
 endmodule
 
 
-module directoryStateMachineBus(input readMiss, invalidate, writeMiss, input[1:0] busInitialState, output[1:0] busNewState, output busWriteBack, output busFetch)
+module directoryStateMachineBus(input readMiss, invalidate, writeMiss, input[1:0] initialState, output[1:0] busNewState, output busWriteBack, output busFetch)
 
 parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
 
 always @(*) begin
 if ({readMiss, invalidate, writeMiss}==3'b000) begin
-    busNewState <= busInitialState;
+    busNewState <= initialState;
     busWriteBack<= 1'b0;
     busFetch <= 1'b0; 
 end
-case busInitialState:
+case initialState:
     SHARED: begin
         case {readMiss, invalidate, writeMiss}
             3'b001: begin //writemiss
