@@ -1,7 +1,8 @@
 module memory(input clk, operation, input [7:0]address, dataIn, output [7:0]dataOut);
 
-reg [7:0] memory[0:255];
-assign dataOut = memory[address];
+reg [7:0] memory[0:7];
+wire [2:0] shortendAddress = address[2:0];
+assign dataOut = memory[shortendAddress];
 
 initial begin
     memory[0] <= 8'b00010000;

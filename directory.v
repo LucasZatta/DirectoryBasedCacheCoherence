@@ -4,48 +4,112 @@ module directory(input clk);
 wire operationP0, operationP1;
 wire [7:0]addressP0, addressP1, dataP0, dataP1;
 
-//cachesL1
-wire [7:0] fetchDataC0, fetchAddressC0, fetchDataC1, fetchAddressC1, dataOutC0, dataOutC1, 
-addressBypassC0, dataBypassC0, addressBypassC1, dataBypassC1, addressFromC1, addressFromC0, addressToC1, addressToC0;
-wire fetchPresentC0, fetchPresentC1, operationBypassC0, operationBypassC1,
-dataWriteBackC0, dataWriteBackC1;
+//l1 01, ins
+wire abortMemAccessFromC1;
+wire [7:0] dataReplyFromC1, addressFetchingForC1;
+wire [2:0] interconnectionFromC1, busAddressFromC1;
+//outs
+wire abortMemAccessToC1;
+wire [7:0] dataOutC0, dataSupplyToC1, addressRequestToC1;
+wire dataWriteBackC0;
+wire [2:0] interconnectionToC1;
 
-wire [2:0] interconnectionMessageC0FromC1, interconnectionMessageC0ToC1, interconnectionMessageC1FromC0, interconnectionMessageC1ToC0; //via de comunicacao cachel2->l1
-// wire [2:0] interconnectionMessageFromC0ToC1, interconnectionMessageFromC1ToC0 
-//cacheL2
-wire [7:0] addressBypassL2, dataBypassL2, memoryDataOut;
-wire operationBypassL2
+//l1 02
+wire abortMemAccessFromC0;
+wire [7:0] dataReplyFromC0, addressFetchingForC0;
+wire [2:0] interconnectionFromC0, busAddressFromC0;
+//outs
+wire abortMemAccessToC0;
+wire [7:0] dataOutC1, dataSupplyToC0, addressRequestToC0;
+wire dataWriteBackC1;
+wire [2:0] interconnectionToC0; 
 
+//l2 ins
+wire [7:0] memSupply; //mem out
+//outs
+wire memWrite;
+wire [7:0] memAddressRequest, memWriteData;
+
+//mem out
+wire [7:0] memoryDataOut;
+
+initial begin
+    c00.tag[0] <= 8'b00000000;
+    c00.data[0] <= 8'b00010000;
+    c00.coherencyStates[0] <= 2'b11;
+
+    c00.tag[1] <= 8'b00000001;
+    c00.data[1] <= 8'b00001000;
+    c00.coherencyStates[1] <= 2'b10;
+
+    c01.tag[0] <= 8'b00000110;
+    c01.data[0] <= 8'b01101000;
+    c01.coherencyStates[0] <= 2'b11;
+
+    c01.tag[1] <= 8'b00000011;
+    c01.data[1] <= 8'b00011000;
+    c01.coherencyStates[1] <= 2'b10;
+
+    c02.tag[0] <= 6'b000000;
+    c02.data[0] <= 8'b00010000;
+    c02.coherencyStates[0] <= 2'b11;
+    c02.ownersSharersList[0] <= 4'b1000;
+    c02.tag[1] <= 6'b000001 ;
+    c02.data[1] <= 8'b00001000;
+    c02.coherencyStates[1] <= 2'b10;
+    c02.ownersSharersList[1] <= 4'b1000;
+    c02.tag[2] <= 6'b000010;
+    c02.data[2] <= 8'b01101000;
+    c02.coherencyStates[2] <= 2'b11;
+    c02.ownersSharersList[2] <= 4'b1100;
+    c02.tag[3] <= 6'b000011;
+    c02.data[3] <= 8'b00011000;
+    c02.coherencyStates[3] <= 2'b10;
+    c02.ownersSharersList[3] <= 4'b1100;
+end
 
 processor0 p00(clk, addressP0, operationP0, dataP0);
 processor1 p01(clk, addressP1, operationP1, dataP1);
 
 cacheL1 c00(
     clk, 
-    addressP0, operationP0, dataP0, fetchDataC0, fetchAddressC0, fetchPresentC0, interconnectionMessageC0FromC1, addressFromC1
+    addressP0, operationP0, dataP0, 
+    abortMemAccessFromC1, dataReplyFromC1,
+    interconnectionFromC1, busAddressFromC1, addressFetchingForC1,
     //output
-    dataOutC0, addressBypassC0, dataBypassC0, 
-    dataWriteBackC0, interconnectionMessageC0ToC1, addressToC1
+    abortMemAccessToC1, dataOutC0, dataSupplyToC1, 
+    dataWriteBackC0, interconnectionToC1, addressRequestToC1
     );
 cacheL1 c01(
-    clk, 
-    addressP1, operationP1, dataP1, fetchDataC1, fetchAddressC1, fetchPresentC1, interconnectionMessageC1FromC0, addressFromC0
-    //output
-    dataOutC1, addressBypassC1, dataBypassC1, 
-    dataWriteBackC1, interconnectionMessageC1ToC0, addressToC0
-    );
-
-cacheL2 cl2(
     clk,
-    dataWriteBackC0, addressBypassC0, dataBypassC0,
-    dataWriteBackC1, addressBypassC1, dataBypassC1,
-    interconnectionMessageC0ToC1, interconnectionMessageC1ToC0,
+    addressP1, operationP1, dataP1, 
+    abortMemAccessFromC0, dataReplyFromC0,
+    interconnectionFromC0, busAddressFromC0, addressFetchingForC0,
     //output
-    addressBypassL2, operationBypassL2, dataBypassL2, fetchDataC0, fetchAddressC0, fetchDataC1, fetchAddressC1, fetchPresentC0, fetchPresentC1,
-    interconnectionMessageC0FromC1, interconnectionMessageC1FromC0
+    abortMemAccessToC0, dataOutC1, dataSupplyToC0, 
+    dataWriteBackC1, interconnectionToC0, addressRequestToC0
     );
 
-memory sharedMem(clk, operationBypassL2, addressBypassL2, dataBypassL2, memoryDataOut);
+cacheL2 c02(
+    clk,
+    memSupply,
+    dataWriteBackC0, addressRequestToC1, dataSupplyToC1,
+    dataWriteBackC1, addressRequestToC0, dataSupplyToC0,
+    interconnectionToC0, interconnectionToC1,
+    abortMemAccessToC0, abortMemAccessToC1,
+    dataOutC0, dataOutC1,
+    //output
+    abortMemAccessFromC0, dataReplyFromC0, addressFetchingForC0,
+    interconnectionFromC0, busAddressFromC0,
+
+    abortMemAccessFromC1, dataReplyFromC1, addressFetchingForC1,
+    interconnectionFromC1, busAddressFromC1,
+
+    memWrite,
+    memAddressRequest, memWriteData
+    );
+
+memory ram(clk, memWrite, memAddressRequest, memWriteData, memoryDataOut);
 
 
 
