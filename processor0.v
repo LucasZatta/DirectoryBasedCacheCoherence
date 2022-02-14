@@ -1,6 +1,6 @@
 module processor0(input clk, output [7:0]addressP0, output operationP0, output[7:0]dataP0);
 reg [16:0] p0Instructions[0:8];
-integer counter = 0;
+integer counter;
 
 wire [16:0]instructionAux = p0Instructions[counter]
 assign operationP0 <= instructionAux[16];
@@ -9,6 +9,7 @@ assign dataP0 <= instructionAux[7:0];
 
 initial begin
 #0
+counter = 0;
 p0Instructions[0] <= 17'b000000000XXXXXXXX;
 p0Instructions[1] <= 17'b000000101XXXXXXXX;
 p0Instructions[2] <= 17'b10000010101111000;

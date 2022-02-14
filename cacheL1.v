@@ -1,6 +1,10 @@
 module cacheL1P0(
-    input clk, input [7:0] addressP0, input operationP0, input [7:0] dataP0, input [7:0] fetchDataC0, input fetchAddressC0, input fetchPresentC0, input[2:0] interconnectionMessageC0FromL1, input [7:0] addressFromL1,
-    output [7:0] dataOutC0, addressBypassC0, output operationBypassC0, output [7:0] dataBypassC0, output dataWriteBackC0,  output [2:0] interconnectionMessageC0ToL1, output [7:0] addressToL1
+    input clk, 
+    input [7:0] addressP0, input operationP0, input [7:0] dataP0,
+    input [7:0] fetchDataFromC1, input fetchAddressFromC1, input dataReplyC0,
+    input[2:0] interconnectionMessageC0FromL1, input [7:0] addressFromL1,
+    output [7:0] dataOutC0, addressBypassC0, output operationBypassC0, output [7:0] dataBypassC0, 
+    output dataWriteBackC0,  output [2:0] interconnectionMessageC0ToL1, output [7:0] addressToL1
     );
 
     //l1 com 1 bit de index
@@ -16,8 +20,8 @@ module cacheL1P0(
     wire [1:0]state = coherencyStates[index];
     wire busIndex = addressFromL1[0];
     wire [1:0]stateAttendingBus = coherencyStates[busIndex];
-    wire fetchIndex = fetchAddressC0[0];
-    wire [6:0]fetchTag = fetchAddressC0[7:1];
+    wire fetchIndex = fetchAddressFromC1[0];
+    wire [6:0]fetchTag = fetchAddressFromC1[7:1];
 
     assign interconnectionMessageC0ToL1 = {readMissOnBus, writeMissOnBus, invalidateOnBus};
     assign dataWriteBackC0 = dataWriteBackMachine1 | dataWriteBackMachine2;
@@ -46,17 +50,21 @@ module cacheL1P0(
             data[index] <= dataP0;    
         end
         coherencyStates[busIndex] <= newStateFromBus;
-        if(fetchPresentC0 == 1'b1 && {operationP0,hit} == 2'b10) begin
+        if(dataReplyC0 == 1'b1) begin
             tag[fetchIndex] <= fetchTag;
-            data[fetchIndex] <= fetchDataC0; 
+            data[fetchIndex] <= fetchDataFromC1; 
         end
     end
 
 endmodule
 
 module cacheL1P1(
-    input clk, input [7:0] addressP1, input operationP1, input [7:0] dataP1, input [7:0] fetchDataC1, input fetchAddressC1, input fetchPresentC1, input[2:0] interconnectionMessageC1FromL1, input [7:0] addressFromL1,
-    output [7:0] dataOutC1, addressBypassC1, output operationBypassC1, output [7:0] dataBypassC1, output dataWriteBackC1,  output [2:0] interconnectionMessageC1ToL1, output [7:0] addressToL1
+    input clk, 
+    input [7:0] addressP1, input operationP1, input [7:0] dataP1, 
+    input [7:0] fetchDataFromC0, input fetchAddressFromC0, input dataReplyC1, 
+    input[2:0] interconnectionMessageC1FromL1, input [7:0] addressFromL1,
+    output [7:0] dataOutC1, addressBypassC1, output operationBypassC1, output [7:0] dataBypassC1, 
+    output dataWriteBackC1,  output [2:0] interconnectionMessageC1ToL1, output [7:0] addressToL1
     );
 
     //l1 com 1 bit de index
@@ -72,8 +80,8 @@ module cacheL1P1(
     wire [1:0]state = coherencyStates[index];
     wire busIndex = addressFromL1[0];
     wire [1:0]stateAttendingBus = coherencyStates[busIndex];
-    wire fetchIndex = fetchAddressC1[0];
-    wire [6:0]fetchTag = fetchAddressC1[7:1];
+    wire fetchIndex = fetchAddressFromC0[0];
+    wire [6:0]fetchTag = fetchAddressFromC0[7:1];
 
     assign interconnectionMessageC1ToL1 = {readMissOnBus, writeMissOnBus, invalidateOnBus};
     assign dataWriteBackC1 = dataWriteBackMachine1 | dataWriteBackMachine2;
@@ -102,9 +110,9 @@ module cacheL1P1(
             data[index] <= dataP1;    
         end
         coherencyStates[busIndex] <= newStateFromBus;
-        if(fetchPresentC1 == 1'b1 && {operationP1,hit} == 2'b10) begin
+        if(dataReplyC1 == 1'b1) begin
             tag[fetchIndex] <= fetchTag;
-            data[fetchIndex] <= fetchDataC1; 
+            data[fetchIndex] <= fetchDataFromC0; 
         end
     end
 

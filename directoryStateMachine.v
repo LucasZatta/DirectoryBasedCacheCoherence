@@ -173,3 +173,68 @@ end
 endmodule
 
 
+module directoryFSM(
+    input requester, readMiss, invalidate, writeMiss, dataWriteBack,
+    input[1:0] initialState, input[3:0] ownersSharers, 
+    output[1:0] directoryNewState, output directoryWriteBack, output directoryFetch, 
+    output directoryInvalidate, dataValueReply, output [3:0] dataSharers
+    );
+
+parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
+
+always @(*) begin
+    case (currentState)
+        SHARED: begin
+            if({operation,hit} == 2'b00) begin //readmiss
+                // retorna o data value reply
+                dataValueReply <= 1'b1;
+                
+                newState <= currentState;
+            end
+            else if({operation,hit} == 2'b10) begin
+                directoryInvalidate <= 1'b1;
+                //data value reply
+                newState <= MODIFIED;
+                // dataSharers <= 2'b00;
+                // dataSharers[requester] <= 1'b1;
+            end
+        end
+        INVALID: begin //uncached
+            if({operation,hit} == 2'b00) begin //readmiss
+                //data value reply
+                // dataSharers <= 2'b00;
+                // dataSharers[requester] <= 1'b1;
+                newState <= SHARED;
+            end
+            else if({operation,hit} == 2'b10) begin
+                //data value reply
+                // dataSharers <= 2'b00;
+                // dataSharers[requester] <= 1'b1;
+                newState <= MODIFIED;
+            end
+        end
+        MODIFIED: begin
+            if({operation,hit} == 2'b00) begin
+                //data value reply
+                directoryFetch <= 1'b1;
+                // dataSharers <= 2'b00;
+                // dataSharers[requester] <= 1'b1;
+                newState <= SHARED;
+            end
+            else if ({operation,hit} == 2'b10) begin
+                directoryFetch <= 1'b1;
+                directoryInvalidate <= 1'b1;
+                //data value reply
+                // dataSharers <= 2'b00;
+                // dataSharers[requester] <= 1'b1;
+                newState <= currentState;
+            end
+            else if (dataWriteBack == 1'b1) begin
+                newState <= INVALID; 
+                dataSharers <= 4'b0000;
+            end
+        end
+        default: 
+    endcase
+end
+endmodule
