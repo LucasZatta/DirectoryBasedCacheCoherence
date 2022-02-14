@@ -1,4 +1,6 @@
-module directoryStateMachineCPU(input operation, hit, input[1:0] cpuInitialState, output reg readMissOnBus, writeMissOnBus, invalidateOnBus, dataWriteBack, output [1:0] cpuNewState);
+module directoryStateMachineCPU(
+    input operation, hit, input[1:0] cpuInitialState, 
+    output reg readMissOnBus, writeMissOnBus, invalidateOnBus, dataWriteBack, output reg[1:0] cpuNewState);
 //
 //invalidate
 //shared
@@ -110,7 +112,9 @@ end
 endmodule
 
 
-module directoryStateMachineBus(input readMiss, invalidate, writeMiss, input[1:0] initialState, output[1:0] busNewState, output busWriteBack, output busFetch)
+module directoryStateMachineBus(
+    input readMiss, invalidate, writeMiss, input[1:0] initialState, 
+    output[1:0] busNewState, output busWriteBack, output busFetch)
 
 parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
 
@@ -176,8 +180,8 @@ endmodule
 module directoryFSM(
     input requester, readMiss, invalidate, writeMiss, dataWriteBack,
     input[1:0] initialState, input[3:0] ownersSharers, 
-    output[1:0] directoryNewState, output directoryWriteBack, output directoryFetch, 
-    output directoryInvalidate, dataValueReply, output [3:0] dataSharers
+    output reg[1:0] directoryNewState, directoryFetch, 
+    directoryInvalidate, dataValueReply, output reg [3:0] dataSharers
     );
 
 parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
@@ -186,52 +190,87 @@ always @(*) begin
     case (currentState)
         SHARED: begin
             if({operation,hit} == 2'b00) begin //readmiss
-                // retorna o data value reply
                 dataValueReply <= 1'b1;
-                
+                directoryFetch <= 1'b0;
+                directoryInvalidate <= 1'b0; 
                 newState <= currentState;
+                if (requester == 1'b1) begin
+                    dataSharers <= {ownersSharers[3:2],1'b1,ownersSharers[0]};
+                end
+                else if(requester == 1'b0) begin
+                    dataSharers <= {ownersSharers[3:1],1'b1};
+                end
             end
-            else if({operation,hit} == 2'b10) begin
-                directoryInvalidate <= 1'b1;
-                //data value reply
+            else if({operation,hit} == 2'b10) begin //write miss
+                dataValueReply <= 1'b1;
+                directoryFetch <= 1'b0;
+                directoryInvalidate <= 1'b1; 
                 newState <= MODIFIED;
-                // dataSharers <= 2'b00;
-                // dataSharers[requester] <= 1'b1;
+                if (requester == 1'b1) begin
+                    dataSharers <= {ownersSharers[3:2],2'b10};
+                end
+                else if(requester == 1'b0) begin
+                    dataSharers <= {ownersSharers[3:2],2'b01};
+                end
             end
         end
         INVALID: begin //uncached
             if({operation,hit} == 2'b00) begin //readmiss
-                //data value reply
-                // dataSharers <= 2'b00;
-                // dataSharers[requester] <= 1'b1;
+                dataValueReply <= 1'b1;
+                directoryFetch <= 1'b0;
+                directoryInvalidate <= 1'b0; 
                 newState <= SHARED;
+                if (requester == 1'b1) begin
+                    dataSharers <= {ownersSharers[3:2],2'b10};
+                end
+                else if(requester == 1'b0) begin
+                    dataSharers <= {ownersSharers[3:2],2'b01};
+                end
             end
             else if({operation,hit} == 2'b10) begin
-                //data value reply
-                // dataSharers <= 2'b00;
-                // dataSharers[requester] <= 1'b1;
+                dataValueReply <= 1'b1;
+                directoryFetch <= 1'b0;
+                directoryInvalidate <= 1'b0; 
                 newState <= MODIFIED;
+                if (requester == 1'b1) begin
+                    dataSharers <= {ownersSharers[3:2],2'b10};
+                end
+                else if(requester == 1'b0) begin
+                    dataSharers <= {ownersSharers[3:2],2'b01};
+                end
             end
         end
         MODIFIED: begin
-            if({operation,hit} == 2'b00) begin
-                //data value reply
+            if({operation,hit} == 2'b00) begin //readmiss
+                dataValueReply <= 1'b1;
                 directoryFetch <= 1'b1;
-                // dataSharers <= 2'b00;
-                // dataSharers[requester] <= 1'b1;
+                directoryInvalidate <= 1'b0; 
                 newState <= SHARED;
+                if (requester == 1'b1) begin
+                    dataSharers <= {ownersSharers[3:2],1'b1,ownersSharers[0]};
+                end
+                else if(requester == 1'b0) begin
+                    dataSharers <= {ownersSharers[3:1],1'b1};
+                end
             end
             else if ({operation,hit} == 2'b10) begin
+                dataValueReply <= 1'b1;
                 directoryFetch <= 1'b1;
-                directoryInvalidate <= 1'b1;
-                //data value reply
-                // dataSharers <= 2'b00;
-                // dataSharers[requester] <= 1'b1;
-                newState <= currentState;
+                directoryInvalidate <= 1'b1; 
+                newState <= MODIFIED;
+                if (requester == 1'b1) begin
+                    dataSharers <= {ownersSharers[3:2],2'b10};
+                end
+                else if(requester == 1'b0) begin
+                    dataSharers <= {ownersSharers[3:2],2'b01};
+                end
             end
             else if (dataWriteBack == 1'b1) begin
-                newState <= INVALID; 
-                dataSharers <= 4'b0000;
+                dataValueReply <= 1'b0;
+                directoryFetch <= 1'b0;
+                directoryInvalidate <= 1'b0; 
+                newState <= MODIFIED;
+                dataSharers <= {ownersSharers[3:2],2'b00};
             end
         end
         default: 

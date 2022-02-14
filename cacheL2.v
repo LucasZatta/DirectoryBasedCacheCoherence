@@ -1,6 +1,7 @@
 module cacheL2(
-    input clk, dataWriteBackC0, input [7:0] addressBypassC0, input operationBypassC0, input [7:0] dataBypassC0,
-    input dataWriteBackC1, input [7:0] addressBypassC1, input operationBypassC1, input [7:0] dataBypassC1,
+    input clk, 
+    dataWriteBackC0, input [7:0] addressBypassC0, input [7:0] dataBypassC0,
+    input dataWriteBackC1, input [7:0] addressBypassC1, input [7:0] dataBypassC1,
     input [2:0] interconnectionMessageC0ToC1, input interconnectionMessageC1ToC0,
     //output
     output [7:0] addressBypassL2, output operationBypassL2, output [7:0] dataBypassL2, 
@@ -29,7 +30,7 @@ module cacheL2(
     wire [3:0] ownerSharersC1 = ownersSharersList[indexC1];
     wire [1:0] directoryNewStateAttendingC0, directoryNewStateAttendingC1;
 
-    assign operationBypassL2 = directoryWriteBackC1 | directoryWriteBackC0;
+    assign operationBypassL2 = dataWriteBackC0 | dataWriteBackC1;
     assign fetchPressentC0 = directoryFetchAttendingC1;
     assign fetchPressentC1 = directoryFetchAttendingC0;
     assign fetchDataC0 = dataBypassC1;
@@ -43,8 +44,6 @@ module cacheL2(
     assign interconnectionMessageC1FromC0[2] = interconnectionMessageC1ToC0[2];
     assign interconnectionMessageC0FromC1[2] = interconnectionMessageC0ToC1[2];
 
-    // cl1 -> 3'000 ->l2
-    // cl1 <- 1'b0 <- l2
     initial begin
         tag[0] <= 6'b000000;
         data[0] <= 8'b00010000;
@@ -92,7 +91,6 @@ module cacheL2(
         initialStateC0,
         ownerSharersC0,
         directoryNewStateAttendingC0,
-        directoryWriteBackC0,
         directoryFetchAttendingC0,
         directoryInvalidateAttendingC0,
         directoryDataValueReplyAttendingC0,
@@ -103,7 +101,7 @@ module cacheL2(
         coherencyStates[indexC0] <= directoryNewStateAttendingC0;
         ownersSharersList[indexC0] <= newOwnerSharersC0;
 
-        if(dataWriteBackC0 == 1'b1 | operationBypassC0 == 1'b1) begin
+        if(dataWriteBackC0 == 1'b1 ) begin
             data[indexC0] <= dataBypassC0;
             tag[indexC0] <= tagC0;
         end

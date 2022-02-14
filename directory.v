@@ -24,21 +24,21 @@ cacheL1 c00(
     clk, 
     addressP0, operationP0, dataP0, fetchDataC0, fetchAddressC0, fetchPresentC0, interconnectionMessageC0FromC1, addressFromC1
     //output
-    dataOutC0, addressBypassC0, operationBypassC0, dataBypassC0, 
+    dataOutC0, addressBypassC0, dataBypassC0, 
     dataWriteBackC0, interconnectionMessageC0ToC1, addressToC1
     );
 cacheL1 c01(
     clk, 
     addressP1, operationP1, dataP1, fetchDataC1, fetchAddressC1, fetchPresentC1, interconnectionMessageC1FromC0, addressFromC0
     //output
-    dataOutC1, addressBypassC1, operationBypassC1, dataBypassC1, 
+    dataOutC1, addressBypassC1, dataBypassC1, 
     dataWriteBackC1, interconnectionMessageC1ToC0, addressToC0
     );
 
 cacheL2 cl2(
     clk,
-    dataWriteBackC0, addressBypassC0, operationBypassC0, dataBypassC0,
-    dataWriteBackC1, addressBypassC1, operationBypassC1, dataBypassC1,
+    dataWriteBackC0, addressBypassC0, dataBypassC0,
+    dataWriteBackC1, addressBypassC1, dataBypassC1,
     interconnectionMessageC0ToC1, interconnectionMessageC1ToC0,
     //output
     addressBypassL2, operationBypassL2, dataBypassL2, fetchDataC0, fetchAddressC0, fetchDataC1, fetchAddressC1, fetchPresentC0, fetchPresentC1,

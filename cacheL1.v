@@ -3,7 +3,7 @@ module cacheL1P0(
     input [7:0] addressP0, input operationP0, input [7:0] dataP0,
     input [7:0] fetchDataFromC1, input fetchAddressFromC1, input dataReplyC0,
     input[2:0] interconnectionMessageC0FromL1, input [7:0] addressFromL1,
-    output [7:0] dataOutC0, addressBypassC0, output operationBypassC0, output [7:0] dataBypassC0, 
+    output [7:0] dataOutC0, addressBypassC0, dataBypassC0, 
     output dataWriteBackC0,  output [2:0] interconnectionMessageC0ToL1, output [7:0] addressToL1
     );
 
