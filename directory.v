@@ -6,8 +6,8 @@ wire [7:0]addressP0, addressP1, dataP0, dataP1;
 
 //l1 01, ins
 wire abortMemAccessFromC1;
-wire [7:0] dataReplyFromC1, addressFetchingForC1;
-wire [2:0] interconnectionFromC1, busAddressFromC1;
+wire [7:0] dataReplyFromC1, addressFetchingForC1, busAddressFromC1;
+wire [1:0] interconnectionFromC1; 
 //outs
 wire abortMemAccessToC1;
 wire [7:0] dataOutC0, dataSupplyToC1, addressRequestToC1;
@@ -16,8 +16,8 @@ wire [2:0] interconnectionToC1;
 
 //l1 02
 wire abortMemAccessFromC0;
-wire [7:0] dataReplyFromC0, addressFetchingForC0;
-wire [2:0] interconnectionFromC0, busAddressFromC0;
+wire [7:0] dataReplyFromC0, addressFetchingForC0, busAddressFromC0;
+wire [1:0] interconnectionFromC0;
 //outs
 wire abortMemAccessToC0;
 wire [7:0] dataOutC1, dataSupplyToC0, addressRequestToC0;
@@ -30,8 +30,6 @@ wire [7:0] memSupply; //mem out
 wire memWrite;
 wire [7:0] memAddressRequest, memWriteData;
 
-//mem out
-wire [7:0] memoryDataOut;
 
 initial begin
     c00.tag[0] <= 8'b00000000;
@@ -42,7 +40,7 @@ initial begin
     c00.data[1] <= 8'b00001000;
     c00.coherencyStates[1] <= 2'b10;
 
-    c01.tag[0] <= 8'b00000110;
+    c01.tag[0] <= 8'b00000010;
     c01.data[0] <= 8'b01101000;
     c01.coherencyStates[0] <= 2'b11;
 
@@ -97,20 +95,37 @@ cacheL2 c02(
     dataWriteBackC1, addressRequestToC0, dataSupplyToC0,
     interconnectionToC0, interconnectionToC1,
     abortMemAccessToC0, abortMemAccessToC1,
-    dataOutC0, dataOutC1,
     //output
-    abortMemAccessFromC0, dataReplyFromC0, addressFetchingForC0,
-    interconnectionFromC0, busAddressFromC0,
+    abortMemAccessFromC0, dataReplyFromC0, addressFetchingForC0, busAddressFromC0,
+    interconnectionFromC0, 
 
-    abortMemAccessFromC1, dataReplyFromC1, addressFetchingForC1,
-    interconnectionFromC1, busAddressFromC1,
+    abortMemAccessFromC1, dataReplyFromC1, addressFetchingForC1, busAddressFromC1,
+    interconnectionFromC1, 
 
     memWrite,
     memAddressRequest, memWriteData
     );
 
-memory ram(clk, memWrite, memAddressRequest, memWriteData, memoryDataOut);
+memory ram(clk, memWrite, memAddressRequest, memWriteData, memSupply);
 
+always @(posedge clk) begin
+    $display(
+        "op:%b adrs:%b d:%b s:%b h:%b\nbusAdrs:%b sb:%b\nfetchAdrs:%b present:%b answ:%b\nwb:%b onBus:%b",
 
+        operationP0, addressP0, dataP0, c00.state, c00.hit,
+        busAddressFromC1, c00.stateAttendingBus, 
+        c00.addressRequested, c00.dataSupplyPresent, c00.dataSupply, 
+        c00.writeBack, c00.ToInterconnection
+    );
+    $display(
+        "op:%b adrs:%b d:%b s:%b h:%b\nbusAdrs:%b sb:%b\nfetchAdrs:%b present:%b answ:%b\nwb:%b onBus:%b",
+
+        operationP1, addressP1, dataP1, c01.state, c01.hit,
+        busAddressFromC0, c01.stateAttendingBus, 
+        c01.addressRequested, c01.dataSupplyPresent, c01.dataSupply, 
+        c01.writeBack, c01.ToInterconnection
+    );
+
+end
 
 endmodule

@@ -8,7 +8,7 @@ module directoryStateMachineCPU(
 //shared
 //modified
 //escrita 1, leitura 0
-parameter INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
+localparam INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
 
 initial begin
     readMissOnBus <= 1'b0;
@@ -115,75 +115,49 @@ endmodule
 
 
 module directoryStateMachineBus(
-    input readMiss, invalidate, writeMiss, 
+    input fetch, invalidate, 
     input[1:0] initialState, 
     output reg [1:0] busNewState, output reg busWriteBack, abortMemAccess);
 
-parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
+localparam NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
 
 always @(*) begin
-if ({readMiss, invalidate, writeMiss}==3'b000) begin
-    busNewState <= initialState;
-    busWriteBack<= 1'b0;
-    abortMemAccess <= 1'b0; 
-end
 case (initialState)
     SHARED: begin
-        case ({readMiss, invalidate, writeMiss})
-            3'b001: begin //writemiss
-                busNewState <= INVALID;
-                busWriteBack <= 1'b0;
-                abortMemAccess <= 1'b0;
-            end
-            3'b010: begin //invalidate
-                busNewState <= INVALID;
-                busWriteBack <= 1'b0;
-                abortMemAccess <= 1'b0;
-            end
-            3'b100: begin //readMiss
-                busNewState <= SHARED;
-                busWriteBack<= 1'b0;
-                abortMemAccess <= 1'b0;
-            end
-        endcase
+        if(invalidate == 1'b1)begin
+            busNewState <= INVALID;
+            busWriteBack <= 1'b0;
+        end
     end
 
     INVALID: begin
         busNewState <= INVALID;
         busWriteBack<= 1'b0;
-        abortMemAccess <= 1'b0;
     end
 
     MODIFIED: begin
-        case ({readMiss, invalidate, writeMiss})
-            3'b001: begin //writeMiss
-                busNewState <= INVALID;
-                busWriteBack<= 1'b1;
-                abortMemAccess <= 1'b1;
-            end
-            end
-            3'b100: begin //readMiss
-                busNewState <= SHARED;
-                busWriteBack<= 1'b1;
-                abortMemAccess <= 1'b1;
-            end
-        endcase
+        if(fetch == 1'b1 & invalidate == 1'b1)begin
+            busNewState <= INVALID;
+            busWriteBack<= 1'b1;
+        end 
+        if(fetch == 1'b1) begin
+            busNewState <= MODIFIED;
+            busWriteBack <= 1'b1;
+        end
     end
 endcase
-x
 end
-
 endmodule
 
 
 module directoryFSM(
     input requester, readMiss, invalidate, writeMiss, dataWriteBack,
     input[1:0] initialState, input[3:0] ownersSharers, 
-    output reg[1:0] directoryNewState, directoryFetch, 
+    output reg[1:0] directoryNewState, output reg directoryFetch, 
     directoryInvalidate, dataValueReply, output reg [3:0] dataSharers
     );
 
-parameter NONEMESSAGE = 2'b00, INVALID = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
+localparam NONEMESSAGE = 2'b00, UNCACHED = 2'b01, SHARED = 2'b10, MODIFIED = 2'b11;
 
 always @(*) begin
     case (initialState)
@@ -192,7 +166,7 @@ always @(*) begin
                 dataValueReply <= 1'b1;
                 directoryFetch <= 1'b0;
                 directoryInvalidate <= 1'b0; 
-                directoryNewState <= initialState;
+                directoryNewState <= SHARED;
                 if (requester == 1'b1) begin
                     dataSharers <= {ownersSharers[3:2],1'b1,ownersSharers[0]};
                 end
@@ -213,7 +187,7 @@ always @(*) begin
                 end
             end
         end
-        INVALID: begin //uncached
+        UNCACHED: begin //uncached
             if(readMiss == 1'b1) begin //readmiss
                 dataValueReply <= 1'b1;
                 directoryFetch <= 1'b0;
@@ -252,7 +226,7 @@ always @(*) begin
                     dataSharers <= {ownersSharers[3:1],1'b1};
                 end
             end
-            else if(writeMiss == 2'b10) begin
+            else if(writeMiss == 1'b1) begin
                 dataValueReply <= 1'b1;
                 directoryFetch <= 1'b1;
                 directoryInvalidate <= 1'b1; 
@@ -268,7 +242,7 @@ always @(*) begin
                 dataValueReply <= 1'b0;
                 directoryFetch <= 1'b0;
                 directoryInvalidate <= 1'b0; 
-                directoryNewState <= MODIFIED;
+                directoryNewState <= UNCACHED;
                 dataSharers <= {ownersSharers[3:2],2'b00};
             end
         end
